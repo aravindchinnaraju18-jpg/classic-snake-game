@@ -1,2 +1,3 @@
-2026/04/09-15:37:13.053 a24 Creating DB C:\Users\carav\OneDrive\Documents\New project\.tmp-browser-profile\Default\shared_proto_db since it was missing.
-2026/04/09-15:37:13.095 a24 Reusing MANIFEST C:\Users\carav\OneDrive\Documents\New project\.tmp-browser-profile\Default\shared_proto_db/MANIFEST-000001
+2026/04/09-16:22:18.351 3a88 Reusing MANIFEST C:\Users\carav\OneDrive\Documents\New project\.tmp-browser-profile\Default\shared_proto_db/MANIFEST-000001
+2026/04/09-16:22:18.351 3a88 Recovering log #3
+2026/04/09-16:22:18.353 3a88 Reusing old log C:\Users\carav\OneDrive\Documents\New project\.tmp-browser-profile\Default\shared_proto_db/000003.log 

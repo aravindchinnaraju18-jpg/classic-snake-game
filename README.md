@@ -35,6 +35,16 @@ If you want to see the test results directly in PowerShell before committing, ru
 
 This starts a temporary local server, opens the browser tests headlessly, and prints the summary plus each pass/fail line in the terminal.
 
+## Run tests automatically on commit
+
+This repo can also run the same PowerShell tests automatically during `git commit` through a Git `pre-commit` hook.
+
+If the hook is configured, Git will:
+
+- run `.\scripts\run-tests.ps1`
+- stop the commit if any test fails
+- allow the commit only when the test run passes
+
 ## Files
 
 - `index.html`: game page

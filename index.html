@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Snake</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="game-panel" aria-label="Snake game">
+        <header class="game-header">
+          <div>
+            <h1>Snake</h1>
+            <p class="subtitle">Classic grid movement. Eat food, grow longer, stay alive.</p>
+          </div>
+          <div class="scoreboard" aria-live="polite">
+            <div class="score-item">
+              <span class="score-label">Score</span>
+              <strong id="score">0</strong>
+            </div>
+            <div class="score-item">
+              <span class="score-label">Best</span>
+              <strong id="best-score">0</strong>
+            </div>
+          </div>
+        </header>
+
+        <section class="status-row">
+          <p id="status" class="status">Press any arrow key or WASD to start.</p>
+          <div class="actions">
+            <button id="pause-button" type="button">Pause</button>
+            <button id="restart-button" type="button">Restart</button>
+          </div>
+        </section>
+
+        <div
+          id="board"
+          class="board"
+          role="grid"
+          aria-label="Snake board"
+          tabindex="0"
+        ></div>
+
+        <section class="controls" aria-label="Touch controls">
+          <button type="button" data-direction="up" aria-label="Move up">Up</button>
+          <div class="controls-row">
+            <button type="button" data-direction="left" aria-label="Move left">Left</button>
+            <button type="button" data-direction="down" aria-label="Move down">Down</button>
+            <button type="button" data-direction="right" aria-label="Move right">Right</button>
+          </div>
+        </section>
+
+        <p class="hint">Controls: Arrow keys or WASD. Press Space or P to pause.</p>
+      </section>
+    </main>
+
+    <script type="module" src="./src/snake-game.js"></script>
+  </body>
+</html>

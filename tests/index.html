@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aravind's Snake App Tests</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f3f4ef;
+        --panel: #ffffff;
+        --text: #1d2a1d;
+        --muted: #5f6d5f;
+        --pass: #295c3b;
+        --fail: #c84b31;
+        --border: #cfd5c5;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        padding: 24px;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      main {
+        max-width: 760px;
+        margin: 0 auto;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 24px;
+      }
+
+      h1 {
+        margin-top: 0;
+      }
+
+      .summary {
+        color: var(--muted);
+        margin-bottom: 20px;
+      }
+
+      .test-result {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 12px 14px;
+        margin-bottom: 12px;
+      }
+
+      .test-result.pass {
+        border-color: rgba(41, 92, 59, 0.3);
+      }
+
+      .test-result.fail {
+        border-color: rgba(200, 75, 49, 0.35);
+      }
+
+      .test-result strong {
+        display: block;
+      }
+
+      .test-result.pass strong {
+        color: var(--pass);
+      }
+
+      .test-result.fail strong {
+        color: var(--fail);
+      }
+
+      code {
+        font-family: Consolas, "Courier New", monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Aravind's Snake App Tests</h1>
+      <p id="summary" class="summary">Running tests...</p>
+      <div id="results"></div>
+    </main>
+    <script type="module" src="./test-runner.js?v=20260409"></script>
+  </body>
+</html>

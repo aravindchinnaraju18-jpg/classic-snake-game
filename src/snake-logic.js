@@ -2,6 +2,39 @@ export const GRID_SIZE = 16;
 export const INITIAL_DIRECTION = "right";
 export const TICK_MS = 140;
 
+const coverageState = {
+  functions: {},
+  branches: {},
+};
+
+function coverFunction(name) {
+  coverageState.functions[name] = (coverageState.functions[name] ?? 0) + 1;
+}
+
+function coverBranch(name, branch) {
+  const entry = (coverageState.branches[name] ??= { true: 0, false: 0 });
+  entry[branch] += 1;
+}
+
+export function getCoverageSnapshot() {
+  return {
+    functions: { ...coverageState.functions },
+    branches: Object.fromEntries(
+      Object.entries(coverageState.branches).map(([key, value]) => [key, { ...value }])
+    ),
+  };
+}
+
+export function resetCoverage() {
+  for (const key of Object.keys(coverageState.functions)) {
+    coverageState.functions[key] = 0;
+  }
+
+  for (const key of Object.keys(coverageState.branches)) {
+    coverageState.branches[key] = { true: 0, false: 0 };
+  }
+}
+
 const DIRECTION_VECTORS = {
   up: { x: 0, y: -1 },
   down: { x: 0, y: 1 },
@@ -17,6 +50,7 @@ const OPPOSITE_DIRECTIONS = {
 };
 
 export function createInitialState(random = Math.random) {
+  coverFunction("createInitialState");
   const snake = [
     { x: 2, y: 8 },
     { x: 1, y: 8 },
@@ -38,11 +72,17 @@ export function createInitialState(random = Math.random) {
 }
 
 export function queueDirection(state, nextDirection) {
-  if (!DIRECTION_VECTORS[nextDirection]) {
+  coverFunction("queueDirection");
+  const isInvalidDirection = !DIRECTION_VECTORS[nextDirection];
+  coverBranch("queueDirection.invalidDirection", isInvalidDirection ? "true" : "false");
+  if (isInvalidDirection) {
     return state;
   }
 
-  if (state.hasStarted && nextDirection === OPPOSITE_DIRECTIONS[state.direction]) {
+  const isOppositeDirection =
+    state.hasStarted && nextDirection === OPPOSITE_DIRECTIONS[state.direction];
+  coverBranch("queueDirection.oppositeDirection", isOppositeDirection ? "true" : "false");
+  if (isOppositeDirection) {
     return state;
   }
 
@@ -55,7 +95,10 @@ export function queueDirection(state, nextDirection) {
 }
 
 export function togglePause(state) {
-  if (state.isGameOver || !state.hasStarted) {
+  coverFunction("togglePause");
+  const cannotTogglePause = state.isGameOver || !state.hasStarted;
+  coverBranch("togglePause.cannotToggle", cannotTogglePause ? "true" : "false");
+  if (cannotTogglePause) {
     return state;
   }
 
@@ -66,7 +109,10 @@ export function togglePause(state) {
 }
 
 export function tickState(state, random = Math.random) {
-  if (state.isGameOver || state.isPaused || !state.hasStarted) {
+  coverFunction("tickState");
+  const shouldSkipTick = state.isGameOver || state.isPaused || !state.hasStarted;
+  coverBranch("tickState.skip", shouldSkipTick ? "true" : "false");
+  if (shouldSkipTick) {
     return state;
   }
 
@@ -75,7 +121,9 @@ export function tickState(state, random = Math.random) {
   const head = state.snake[0];
   const nextHead = { x: head.x + vector.x, y: head.y + vector.y };
 
-  if (isWallCollision(nextHead, state.gridSize)) {
+  const hitWall = isWallCollision(nextHead, state.gridSize);
+  coverBranch("tickState.wallCollision", hitWall ? "true" : "false");
+  if (hitWall) {
     return {
       ...state,
       direction,
@@ -85,13 +133,16 @@ export function tickState(state, random = Math.random) {
 
   const willGrow =
     state.food !== null && nextHead.x === state.food.x && nextHead.y === state.food.y;
+  coverBranch("tickState.willGrow", willGrow ? "true" : "false");
   const nextSnake = [nextHead, ...state.snake];
 
   if (!willGrow) {
     nextSnake.pop();
   }
 
-  if (isSelfCollision(nextHead, nextSnake)) {
+  const hitSelf = isSelfCollision(nextHead, nextSnake);
+  coverBranch("tickState.selfCollision", hitSelf ? "true" : "false");
+  if (hitSelf) {
     return {
       ...state,
       direction,
@@ -102,6 +153,7 @@ export function tickState(state, random = Math.random) {
 
   const nextFood = willGrow ? placeFood(nextSnake, state.gridSize, random) : state.food;
   const isWin = willGrow && nextFood === null;
+  coverBranch("tickState.win", isWin ? "true" : "false");
 
   return {
     ...state,
@@ -115,6 +167,7 @@ export function tickState(state, random = Math.random) {
 }
 
 export function placeFood(snake, gridSize, random = Math.random) {
+  coverFunction("placeFood");
   const occupied = new Set(snake.map(({ x, y }) => `${x},${y}`));
   const available = [];
 
@@ -127,7 +180,9 @@ export function placeFood(snake, gridSize, random = Math.random) {
     }
   }
 
-  if (available.length === 0) {
+  const isBoardFull = available.length === 0;
+  coverBranch("placeFood.boardFull", isBoardFull ? "true" : "false");
+  if (isBoardFull) {
     return null;
   }
 
@@ -136,14 +191,21 @@ export function placeFood(snake, gridSize, random = Math.random) {
 }
 
 export function isWallCollision(position, gridSize) {
-  return (
+  coverFunction("isWallCollision");
+  const collision =
     position.x < 0 ||
     position.y < 0 ||
     position.x >= gridSize ||
-    position.y >= gridSize
-  );
+    position.y >= gridSize;
+  coverBranch("isWallCollision.result", collision ? "true" : "false");
+  return collision;
 }
 
 export function isSelfCollision(head, snake) {
-  return snake.slice(1).some((segment) => segment.x === head.x && segment.y === head.y);
+  coverFunction("isSelfCollision");
+  const collision = snake
+    .slice(1)
+    .some((segment) => segment.x === head.x && segment.y === head.y);
+  coverBranch("isSelfCollision.result", collision ? "true" : "false");
+  return collision;
 }

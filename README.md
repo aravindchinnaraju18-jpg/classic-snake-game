@@ -1,29 +1,52 @@
 # Aravind's Snake App
 
-A minimal classic Snake implementation built with plain HTML, CSS, and JavaScript.
+A small Python web app with registration, login, SQLite persistence, and a protected Snake dashboard. The frontend Snake game still uses plain HTML, CSS, and JavaScript, and the repo now includes a real build step that packages the app into `build/`.
 
 ## Run locally
 
-From the repo root, start a simple static server:
+From the repo root, start the app server:
 
 ```powershell
-python -m http.server 8000
+python app.py
 ```
 
-Then open `http://localhost:8000`.
+Then open `http://127.0.0.1:8000`.
+
+## Auth workflow
+
+- Visit `/register` to create a user
+- You are logged in automatically after registration
+- The Snake dashboard is served at `/app`
+- User accounts and sessions are stored in SQLite at `data/app.db`
+
+## Build the app
+
+Create a packaged build in `build/`:
+
+```powershell
+python scripts/build.py
+```
+
+Then run the built app:
+
+```powershell
+python build/app.py
+```
 
 ## Run unit tests
 
-The project uses a tiny dependency-free browser test runner for the pure game logic.
+The project uses Python `unittest` for the backend auth flow and a tiny dependency-free browser test runner for the Snake game logic.
 
 1. Start the same local server:
 
 ```powershell
-python -m http.server 8000
+powershell -ExecutionPolicy Bypass -File .\scripts\run-tests.ps1
 ```
 
-2. Open `http://localhost:8000/tests/`
-3. Confirm the page reports all tests as passing and shows function and branch coverage percentages for `src/snake-logic.js`
+The PowerShell script runs:
+
+- Python auth and app tests
+- Browser Snake logic tests with function and branch coverage
 
 ## Run tests in PowerShell
 
@@ -33,7 +56,7 @@ If you want to see the test results directly in PowerShell before committing, ru
 .\scripts\run-tests.ps1
 ```
 
-This starts a temporary local server, opens the browser tests headlessly, and prints the summary plus each pass/fail line in the terminal.
+This runs the Python backend tests first, then starts a temporary local server, opens the browser Snake tests headlessly, and prints the summary plus each pass/fail line in the terminal.
 
 ## Run tests automatically on commit
 
@@ -47,16 +70,23 @@ If the hook is configured, Git will:
 
 ## Files
 
-- `index.html`: game page
-- `styles.css`: minimal app styling
-- `src/snake-logic.js`: deterministic game rules
-- `src/snake-game.js`: DOM rendering and controls
+- `app.py`: local development server entry point
+- `snake_portal/`: Python app, auth, and rendering code
+- `styles.css`: app and game styling
+- `src/snake-logic.js`: deterministic Snake game rules
+- `src/snake-game.js`: Snake DOM rendering and controls
+- `scripts/build.py`: build step that packages the app into `build/`
 - `scripts/run-tests.ps1`: PowerShell runner for terminal test output
+- `tests/test_auth.py`: backend auth tests
+- `tests/test_app.py`: backend route tests
 - `tests/snake-logic.test.js`: unit tests for core game rules
 - `tests/test-runner.js`: browser-based test harness
 
 ## Manual verification
 
+- Register a new account and confirm you land on `/app`
+- Log out and confirm `/app` redirects back to `/login`
+- Log back in with the same credentials
 - Movement works with arrow keys and `W`, `A`, `S`, `D`
 - Snake grows by one segment after eating food
 - Score increments after eating food

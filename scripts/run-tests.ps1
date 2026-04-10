@@ -45,6 +45,18 @@ if (!(Test-Path $profileDir)) {
   New-Item -ItemType Directory -Path $profileDir | Out-Null
 }
 
+Write-Host ""
+Write-Host "Running Python tests..." -ForegroundColor Cyan
+$previousErrorActionPreference = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
+$pythonOutput = & $pythonCommand "$repoRoot\\scripts\\run-python-tests.py" 2>&1 | Out-String
+$pythonExitCode = $LASTEXITCODE
+$ErrorActionPreference = $previousErrorActionPreference
+Write-Host $pythonOutput.Trim()
+if ($pythonExitCode -ne 0) {
+  throw "Python tests failed."
+}
+
 $serverJob = Start-Job -ScriptBlock {
   param($root, $pythonExe, $portNumber)
   Set-Location $root
@@ -54,6 +66,8 @@ $serverJob = Start-Job -ScriptBlock {
 try {
   Start-Sleep -Seconds 2
 
+  $previousErrorActionPreference = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
   $rawOutput = & $browserPath `
     --headless `
     --disable-gpu `
@@ -62,8 +76,10 @@ try {
     --virtual-time-budget=5000 `
     --dump-dom `
     $testUrl 2>&1 | Out-String
+  $browserExitCode = $LASTEXITCODE
+  $ErrorActionPreference = $previousErrorActionPreference
 
-  if ($LASTEXITCODE -ne 0) {
+  if ($browserExitCode -ne 0) {
     throw "Headless browser run failed. Output: $rawOutput"
   }
 

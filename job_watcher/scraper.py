@@ -26,10 +26,10 @@ The response looks roughly like::
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import http.client
 import json
 from typing import Callable, Dict, List
 import urllib.parse
-import urllib.request
 
 BOARDS_API_TEMPLATE = "https://boards-api.greenhouse.io/v1/boards/{board}/jobs"
 
@@ -99,16 +99,41 @@ def board_api_url(board: str) -> str:
   return BOARDS_API_TEMPLATE.format(board=board)
 
 
-def _default_fetcher(url: str, timeout: float = DEFAULT_TIMEOUT) -> str:
-  # Only ever fetch over HTTPS. Validating the scheme before opening the URL
-  # means a misconfigured board token can never turn this into a local-file
-  # read (file://) or a request to an unexpected protocol (ftp://, etc.).
-  if urllib.parse.urlsplit(url).scheme != "https":
-    raise ValueError(f"Refusing to fetch non-HTTPS URL: {url!r}")
-  request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-  with urllib.request.urlopen(request, timeout=timeout) as response:
-    charset = response.headers.get_content_charset() or "utf-8"
-    return response.read().decode(charset)
+def _default_fetcher(url: str, timeout: float = DEFAULT_TIMEOUT, _max_redirects: int = 3) -> str:
+  # Fetch over an explicit HTTPS connection rather than a generic URL opener.
+  # HTTPSConnection can only ever speak TLS to an HTTP host, so a misconfigured
+  # board token can never turn this into a local-file read (file://) or a
+  # plaintext/unexpected-protocol request, and it verifies the server
+  # certificate through the default SSL context.
+  for _ in range(_max_redirects + 1):
+    parts = urllib.parse.urlsplit(url)
+    if parts.scheme != "https" or not parts.netloc:
+      raise ValueError(f"Refusing to fetch non-HTTPS URL: {url!r}")
+
+    connection = http.client.HTTPSConnection(parts.netloc, timeout=timeout)
+    try:
+      target = parts.path or "/"
+      if parts.query:
+        target += "?" + parts.query
+      connection.request("GET", target, headers={"User-Agent": USER_AGENT})
+      response = connection.getresponse()
+      body = response.read()
+
+      if response.status in (301, 302, 303, 307, 308):
+        location = response.headers.get("Location")
+        if not location:
+          raise ValueError("Greenhouse API redirected without a Location header")
+        url = urllib.parse.urljoin(url, location)
+        continue
+      if response.status != 200:
+        raise ValueError(f"Greenhouse API returned HTTP {response.status}")
+
+      charset = response.headers.get_content_charset() or "utf-8"
+      return body.decode(charset)
+    finally:
+      connection.close()
+
+  raise ValueError(f"Too many redirects while fetching {url!r}")
 
 
 def parse_jobs(board: str, payload: str) -> JobBoard:

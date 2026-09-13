@@ -23,6 +23,20 @@ def _env_bool(name: str, default: bool) -> bool:
   return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _safe_state_path(raw: str) -> Path:
+  """Validate a state-file path coming from the environment or CLI.
+
+  The value reaches us from untrusted-by-default sources (env vars, CLI args),
+  so reject parent-directory traversal before it is ever used for file I/O.
+  This closes the path-injection flow into job_watcher.state.
+  """
+
+  path = Path(raw)
+  if ".." in path.parts:
+    raise ValueError(f"Invalid state file path (parent traversal not allowed): {raw!r}")
+  return path
+
+
 @dataclass
 class Config:
   board: str = DEFAULT_BOARD
@@ -65,7 +79,7 @@ def load_config(args: Optional[object] = None) -> Config:
   smtp_user = os.environ.get("SMTP_USER", "")
   config = Config(
     board=os.environ.get("JOB_BOARD_TOKEN", DEFAULT_BOARD),
-    state_file=Path(os.environ.get("JOB_STATE_FILE", DEFAULT_STATE_FILE)),
+    state_file=_safe_state_path(os.environ.get("JOB_STATE_FILE", DEFAULT_STATE_FILE)),
     smtp_host=os.environ.get("SMTP_HOST", ""),
     smtp_port=int(os.environ.get("SMTP_PORT", DEFAULT_SMTP_PORT)),
     smtp_user=smtp_user,
@@ -80,7 +94,7 @@ def load_config(args: Optional[object] = None) -> Config:
     if getattr(args, "board", None):
       config.board = args.board
     if getattr(args, "state_file", None):
-      config.state_file = Path(args.state_file)
+      config.state_file = _safe_state_path(args.state_file)
     if getattr(args, "to", None):
       config.email_to = args.to
     if getattr(args, "notify_first_run", False):

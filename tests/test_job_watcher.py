@@ -11,7 +11,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from job_watcher.config import Config
+from job_watcher.config import Config, load_config
 from job_watcher.diff import diff_jobs
 from job_watcher.notifier import build_message, build_subject, render_text
 from job_watcher.scraper import Job, _default_fetcher, board_api_url, parse_jobs, validate_board_token
@@ -75,6 +75,24 @@ class BoardTokenTests(unittest.TestCase):
     for token in ("../etc", "a/b", "x@evil.com", "has space", "bad\r\nhost", ""):
       with self.assertRaises(ValueError):
         board_api_url(token)
+
+
+class StatePathTests(unittest.TestCase):
+  class _Args:
+    def __init__(self, **kwargs):
+      self.__dict__.update(kwargs)
+
+  def _args(self, state_file):
+    return self._Args(state_file=state_file, board=None, to=None, notify_first_run=False, dry_run=False)
+
+  def test_rejects_parent_traversal(self):
+    for bad in ("../../etc/evil.json", "data/../../x.json"):
+      with self.assertRaises(ValueError):
+        load_config(self._args(bad))
+
+  def test_accepts_normal_path(self):
+    config = load_config(self._args("data/state.json"))
+    self.assertEqual(str(config.state_file), "data/state.json")
 
 
 class FetcherGuardTests(unittest.TestCase):

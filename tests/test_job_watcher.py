@@ -14,7 +14,7 @@ import unittest
 from job_watcher.config import Config
 from job_watcher.diff import diff_jobs
 from job_watcher.notifier import build_message, build_subject, render_text
-from job_watcher.scraper import Job, parse_jobs
+from job_watcher.scraper import Job, _default_fetcher, parse_jobs
 from job_watcher.watcher import run_once
 
 
@@ -61,6 +61,13 @@ class ParseJobsTests(unittest.TestCase):
   def test_non_list_jobs_raises(self):
     with self.assertRaises(ValueError):
       parse_jobs("pokemoncareers", json.dumps({"jobs": {}}))
+
+
+class FetcherGuardTests(unittest.TestCase):
+  def test_default_fetcher_refuses_non_https(self):
+    for url in ("http://example.com", "file:///etc/passwd", "ftp://example.com"):
+      with self.assertRaises(ValueError):
+        _default_fetcher(url)
 
 
 class DiffTests(unittest.TestCase):

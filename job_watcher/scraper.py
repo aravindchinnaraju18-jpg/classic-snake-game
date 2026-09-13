@@ -28,6 +28,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 import json
 from typing import Callable, Dict, List
+import urllib.parse
 import urllib.request
 
 BOARDS_API_TEMPLATE = "https://boards-api.greenhouse.io/v1/boards/{board}/jobs"
@@ -99,6 +100,11 @@ def board_api_url(board: str) -> str:
 
 
 def _default_fetcher(url: str, timeout: float = DEFAULT_TIMEOUT) -> str:
+  # Only ever fetch over HTTPS. Validating the scheme before opening the URL
+  # means a misconfigured board token can never turn this into a local-file
+  # read (file://) or a request to an unexpected protocol (ftp://, etc.).
+  if urllib.parse.urlsplit(url).scheme != "https":
+    raise ValueError(f"Refusing to fetch non-HTTPS URL: {url!r}")
   request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
   with urllib.request.urlopen(request, timeout=timeout) as response:
     charset = response.headers.get_content_charset() or "utf-8"

@@ -1,0 +1,55 @@
+name: Watch Pokémon job board
+
+# Optional serverless deployment of the job watcher. It runs on a schedule,
+# emails you when postings change, and commits the refreshed snapshot back so
+# the next run has something to compare against.
+#
+# Setup (Settings -> Secrets and variables -> Actions):
+#   Secrets:  SMTP_HOST, SMTP_USER, SMTP_PASSWORD, EMAIL_TO
+#   (For Gmail, SMTP_HOST=smtp.gmail.com and SMTP_PASSWORD is an App Password.)
+
+on:
+  schedule:
+    # Every 6 hours. Cron is in UTC.
+    - cron: "0 */6 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: job-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Check for job board changes and notify
+        env:
+          JOB_STATE_FILE: .jobstate/pokemoncareers.json
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: "587"
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_FROM: ${{ secrets.SMTP_USER }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        run: python -m job_watcher
+
+      - name: Persist snapshot
+        run: |
+          if [ -n "$(git status --porcelain .jobstate)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add .jobstate
+            git commit -m "chore: update job board snapshot"
+            git push
+          else
+            echo "No snapshot changes to commit."
+          fi

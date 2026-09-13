@@ -14,7 +14,7 @@ import unittest
 from job_watcher.config import Config
 from job_watcher.diff import diff_jobs
 from job_watcher.notifier import build_message, build_subject, render_text
-from job_watcher.scraper import Job, _default_fetcher, parse_jobs
+from job_watcher.scraper import Job, _default_fetcher, board_api_url, parse_jobs, validate_board_token
 from job_watcher.watcher import run_once
 
 
@@ -63,9 +63,28 @@ class ParseJobsTests(unittest.TestCase):
       parse_jobs("pokemoncareers", json.dumps({"jobs": {}}))
 
 
+class BoardTokenTests(unittest.TestCase):
+  def test_valid_token_builds_url(self):
+    self.assertEqual(validate_board_token("pokemoncareers"), "pokemoncareers")
+    self.assertEqual(
+      board_api_url("pokemoncareers"),
+      "https://boards-api.greenhouse.io/v1/boards/pokemoncareers/jobs",
+    )
+
+  def test_malicious_tokens_rejected(self):
+    for token in ("../etc", "a/b", "x@evil.com", "has space", "bad\r\nhost", ""):
+      with self.assertRaises(ValueError):
+        board_api_url(token)
+
+
 class FetcherGuardTests(unittest.TestCase):
-  def test_default_fetcher_refuses_non_https(self):
-    for url in ("http://example.com", "file:///etc/passwd", "ftp://example.com"):
+  def test_default_fetcher_refuses_disallowed_urls(self):
+    for url in (
+      "http://boards-api.greenhouse.io/x",  # not HTTPS
+      "https://evil.example.com/x",          # wrong host
+      "file:///etc/passwd",
+      "ftp://boards-api.greenhouse.io/x",
+    ):
       with self.assertRaises(ValueError):
         _default_fetcher(url)
 

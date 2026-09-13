@@ -28,6 +28,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 import http.client
 import json
+import re
 from typing import Callable, Dict, List
 import urllib.parse
 
@@ -39,6 +40,15 @@ USER_AGENT = "job-watcher/1.0 (+https://github.com/)"
 
 # A sensible ceiling so a wedged connection can never hang the watcher loop.
 DEFAULT_TIMEOUT = 30.0
+
+# The only host this tool ever talks to.
+GREENHOUSE_API_HOST = "boards-api.greenhouse.io"
+
+# Greenhouse board tokens are short slugs. Validating the token against this
+# allowlist pattern before it is placed into the request URL stops a malformed
+# or malicious value (path separators, "@", whitespace, CR/LF) from altering
+# the request target.
+_BOARD_TOKEN_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$")
 
 # A callable that takes a URL and returns the raw response body as text. Made
 # injectable so tests can exercise the parser without any network access.
@@ -95,8 +105,16 @@ class JobBoard:
     return {job.id: job for job in self.jobs}
 
 
+def validate_board_token(board: str) -> str:
+  """Return ``board`` if it is a safe Greenhouse board slug, else raise."""
+
+  if not _BOARD_TOKEN_RE.match(board):
+    raise ValueError(f"Invalid Greenhouse board token: {board!r}")
+  return board
+
+
 def board_api_url(board: str) -> str:
-  return BOARDS_API_TEMPLATE.format(board=board)
+  return BOARDS_API_TEMPLATE.format(board=validate_board_token(board))
 
 
 def _default_fetcher(url: str, timeout: float = DEFAULT_TIMEOUT, _max_redirects: int = 3) -> str:
@@ -107,8 +125,11 @@ def _default_fetcher(url: str, timeout: float = DEFAULT_TIMEOUT, _max_redirects:
   # certificate through the default SSL context.
   for _ in range(_max_redirects + 1):
     parts = urllib.parse.urlsplit(url)
-    if parts.scheme != "https" or not parts.netloc:
-      raise ValueError(f"Refusing to fetch non-HTTPS URL: {url!r}")
+    # Only HTTPS, and only the known Greenhouse API host. Checking the host
+    # against this allowlist (including for any redirect target) keeps the
+    # request from being pointed at an arbitrary or internal address.
+    if parts.scheme != "https" or parts.hostname != GREENHOUSE_API_HOST:
+      raise ValueError(f"Refusing to fetch disallowed URL: {url!r}")
 
     connection = http.client.HTTPSConnection(parts.netloc, timeout=timeout)
     try:

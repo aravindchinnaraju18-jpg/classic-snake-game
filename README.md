@@ -68,6 +68,18 @@ If the hook is configured, Git will:
 - stop the commit if any test fails
 - allow the commit only when the test run passes
 
+## Job board watcher
+
+This repo also ships a small, dependency-free tool that watches the Pokémon
+careers job board (<https://job-boards.greenhouse.io/pokemoncareers>) and emails
+you whenever a posting is added, removed, or changed. See
+[`job_watcher/README.md`](job_watcher/README.md) for setup and scheduling.
+Quick preview (no email needed):
+
+```bash
+python -m job_watcher --dry-run
+```
+
 ## Files
 
 - `app.py`: local development server entry point
